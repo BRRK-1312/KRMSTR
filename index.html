@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KROMSTR — kromoestereopsia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --panel:#131210;
+    --panel-2:#1b1917;
+    --line:#2a2724;
+    --ink:#e8e4dc;
+    --muted:#8a837a;
+    --vermilion:#e63b19;
+    --gold:#c9a227;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"JetBrains Mono",monospace;
+    font-size:13px;
+    display:flex;flex-direction:column;
+    height:100vh;overflow:hidden;
+  }
+  header{
+    display:flex;align-items:baseline;gap:14px;
+    padding:12px 18px;border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  .brand{
+    font-family:"Bebas Neue",sans-serif;
+    font-size:30px;line-height:1;letter-spacing:2px;
+    color:var(--ink);
+  }
+  .brand b{color:var(--vermilion);font-weight:400}
+  .tag{color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:11px}
+  .spacer{flex:1}
+  .langs{display:flex;gap:2px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .langs button{
+    background:transparent;border:0;color:var(--muted);
+    font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1px;
+    padding:6px 10px;cursor:pointer;
+  }
+  .langs button.on{background:var(--vermilion);color:#111}
+  main{flex:1;display:flex;min-height:0}
+  aside{
+    width:340px;flex:none;background:var(--panel);
+    border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px;
+  }
+  .stage{
+    flex:1;min-width:0;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    background:
+      linear-gradient(45deg,#0c0c0c 25%,transparent 25%),
+      linear-gradient(-45deg,#0c0c0c 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#0c0c0c 75%),
+      linear-gradient(-45deg,transparent 75%,#0c0c0c 75%),
+      #060606;
+    background-size:22px 22px;
+    background-position:0 0,0 11px,11px -11px,-11px 0;
+    padding:18px;overflow:hidden;
+  }
+  canvas{
+    max-width:100%;max-height:100%;
+    box-shadow:0 0 0 1px var(--line),0 24px 60px rgba(0,0,0,.6);
+    background:#000;display:none;
+    image-rendering:auto;
+  }
+  .empty{
+    position:absolute;color:var(--muted);text-align:center;
+    letter-spacing:1px;line-height:1.8;pointer-events:none;
+    text-transform:uppercase;font-size:11px;
+  }
+  .empty span{color:var(--gold)}
+
+  .group{margin-bottom:20px}
+  .group h2{
+    font-family:"Bebas Neue",sans-serif;font-weight:400;
+    font-size:15px;letter-spacing:2px;color:var(--gold);
+    margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);
+    text-transform:uppercase;
+  }
+  .drop{
+    border:1px dashed var(--line);border-radius:3px;
+    padding:14px 10px;text-align:center;cursor:pointer;
+    color:var(--muted);letter-spacing:.5px;transition:.15s;
+    background:var(--panel-2);margin-bottom:8px;
+  }
+  .drop:hover,.drop.hot{border-color:var(--vermilion);color:var(--ink)}
+  .drop.filled{border-style:solid;border-color:var(--gold);color:var(--ink)}
+  .drop .k{display:block;font-weight:700;color:var(--ink);margin-bottom:3px}
+  .drop.filled .k{color:var(--gold)}
+  .drop small{font-size:10px;opacity:.7;word-break:break-all}
+
+  .row{display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px}
+  .row label{color:var(--muted);letter-spacing:.5px}
+  .row .val{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:3px;
+    background:var(--line);border-radius:2px;outline:none;margin:2px 0 2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--vermilion);cursor:pointer;border:2px solid #111;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;border-radius:50%;background:var(--vermilion);
+    cursor:pointer;border:2px solid #111;
+  }
+
+  .toggle{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 0;cursor:pointer;user-select:none;
+  }
+  .toggle label{color:var(--muted);letter-spacing:.5px;cursor:pointer;flex:1}
+  .sw{
+    width:38px;height:20px;border-radius:11px;background:var(--panel-2);
+    border:1px solid var(--line);position:relative;flex:none;transition:.15s;
+  }
+  .sw::after{
+    content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;
+    border-radius:50%;background:var(--muted);transition:.15s;
+  }
+  .toggle.on .sw{background:var(--vermilion);border-color:var(--vermilion)}
+  .toggle.on .sw::after{left:20px;background:#111}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:2px;overflow:hidden;margin-top:6px}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--muted);
+    font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.5px;
+    padding:8px 4px;cursor:pointer;text-transform:uppercase;
+  }
+  .seg button.on{background:var(--panel-2);color:var(--gold)}
+
+  .actions{display:flex;gap:8px;margin-top:4px}
+  .btn{
+    flex:1;font-family:inherit;font-weight:700;letter-spacing:1px;
+    text-transform:uppercase;font-size:12px;padding:11px 8px;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink);
+    border-radius:2px;transition:.15s;
+  }
+  .btn:hover{border-color:var(--gold)}
+  .btn.primary{background:var(--vermilion);border-color:var(--vermilion);color:#111}
+  .btn.primary:hover{filter:brightness(1.1)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.auto{
+    width:100%;display:flex;flex-direction:column;gap:2px;align-items:center;
+    border-color:var(--gold);background:var(--panel-2);padding:9px 8px;
+  }
+  .btn.auto small{font-weight:400;letter-spacing:.3px;font-size:9px;color:var(--muted);text-transform:none}
+  .btn.auto:hover{border-color:var(--gold);background:#211d12}
+  .btn.auto span{color:var(--gold)}
+  .autostatus{
+    min-height:14px;margin:6px 2px 0;font-size:10px;letter-spacing:.5px;
+    color:var(--vermilion);font-weight:700;text-transform:uppercase;
+  }
+  .hint{color:var(--muted);font-size:10px;line-height:1.6;margin-top:10px;letter-spacing:.3px}
+
+  @media(max-width:760px){
+    main{flex-direction:column}
+    aside{width:100%;border-right:0;border-bottom:1px solid var(--line);max-height:46vh}
+    .stage{min-height:280px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>GORR</b>URDIN</div>
+  <div class="tag" data-i="tagline">kromoestereopsia · sakonera-mapa</div>
+  <div class="spacer"></div>
+  <div class="langs">
+    <button data-lang="eu" class="on">EU</button>
+    <button data-lang="es">ES</button>
+    <button data-lang="en">EN</button>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="group">
+      <h2 data-i="sources">Iturriak</h2>
+      <div class="drop" id="dropImage">
+        <span class="k" data-i="image">Irudia</span>
+        <small data-i="dropHint">Arrastatu edo egin klik</small>
+      </div>
+      <div class="drop" id="dropDepth">
+        <span class="k" data-i="depth">Sakonera-mapa</span>
+        <small data-i="dropDepthHint">Aukerakoa · bestela argitasuna</small>
+      </div>
+      <button class="btn auto" id="btnAuto">
+        <span data-i="auto">Sortu automatikoki</span>
+        <small data-i="autoSub">Depth Anything V2 · nabigatzailean</small>
+      </button>
+      <div class="autostatus" id="autoStatus"></div>
+      <input type="file" id="fileImage" accept="image/*" hidden>
+      <input type="file" id="fileDepth" accept="image/*" hidden>
+    </div>
+
+    <div class="group">
+      <h2 data-i="depthTitle">Sakonera</h2>
+      <div class="seg" id="segSource">
+        <button data-src="1" class="on" data-i="srcDepth">Sakonera-mapa</button>
+        <button data-src="0" data-i="srcLum">Argitasuna</button>
+      </div>
+      <div class="toggle" id="tgInvertDepth">
+        <label data-i="invDepth">Alderantzikatu sakonera</label><div class="sw"></div>
+      </div>
+      <div class="row"><label data-i="midpoint">Erdiko puntua</label><span class="val" id="vMid">0.50</span></div>
+      <input type="range" id="rMid" min="0" max="1" step="0.01" value="0.5">
+      <div class="row"><label data-i="spread">Zabalera</label><span class="val" id="vSpread">2.0</span></div>
+      <input type="range" id="rSpread" min="0.5" max="6" step="0.1" value="2">
+    </div>
+
+    <div class="group">
+      <h2 data-i="colorTitle">Kolorea</h2>
+      <div class="toggle" id="tgInvertStereo">
+        <label data-i="invStereo">Alderantzikatu estereoa (gorri↔urdin)</label><div class="sw"></div>
+      </div>
+      <div class="row"><label data-i="sat">Saturazioa</label><span class="val" id="vSat">1.00</span></div>
+      <input type="range" id="rSat" min="0" max="1" step="0.01" value="1">
+      <div class="row"><label data-i="lum">Argitasunaren eragina</label><span class="val" id="vLum">0.60</span></div>
+      <input type="range" id="rLum" min="0" max="1" step="0.01" value="0.6">
+      <div class="row"><label data-i="gamma">Gamma</label><span class="val" id="vGamma">1.00</span></div>
+      <input type="range" id="rGamma" min="0.3" max="3" step="0.01" value="1">
+      <div class="row"><label data-i="black">Beltz-maila</label><span class="val" id="vBlack">0.05</span></div>
+      <input type="range" id="rBlack" min="0" max="0.9" step="0.01" value="0.05">
+    </div>
+
+    <div class="group">
+      <h2 data-i="extraTitle">Gehigarriak</h2>
+      <div class="row"><label data-i="parallax">Paralaxea</label><span class="val" id="vPar">0.0</span></div>
+      <input type="range" id="rPar" min="0" max="0.02" step="0.0005" value="0">
+      <div class="hint" data-i="parHint">Kanalen desplazamendu fisikoa sakoneraren arabera. 0 = kromoestereopsia hutsa.</div>
+      <div class="row" style="margin-top:14px"><label data-i="view">Ikuspegia</label></div>
+      <div class="seg" id="segView">
+        <button data-view="0" class="on" data-i="viewResult">Emaitza</button>
+        <button data-view="1" data-i="viewDepth">Sakonera</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="actions">
+        <button class="btn" id="btnReset" data-i="reset">Berrezarri</button>
+        <button class="btn primary" id="btnExport" data-i="export" disabled>Esportatu PNG</button>
+      </div>
+      <div class="hint" data-i="tip">Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili "alderantzikatu estereoa".</div>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="empty" id="empty" data-i="empty">Kargatu irudi bat<br><span>hasteko</span></div>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+/* ---------- i18n ---------- */
+const I18N = {
+  eu:{tagline:"kromoestereopsia · sakonera-mapa",sources:"Iturriak",image:"Irudia",depth:"Sakonera-mapa",
+      dropHint:"Arrastatu edo egin klik",dropDepthHint:"Aukerakoa · bestela argitasuna",
+      auto:"Sortu automatikoki",autoSub:"Depth Anything V2 · nabigatzailean",
+      stLoad:"Liburutegia kargatzen…",stDownload:"Modeloa deskargatzen",stRun:"Sakonera kalkulatzen…",
+      stDone:"Eginda ✓",stErr:"Errorea — sarea?",stNoImg:"Kargatu irudi bat lehenik",
+      depthTitle:"Sakonera",srcDepth:"Sakonera-mapa",srcLum:"Argitasuna",invDepth:"Alderantzikatu sakonera",
+      midpoint:"Erdiko puntua",spread:"Zabalera",colorTitle:"Kolorea",invStereo:"Alderantzikatu estereoa (gorri↔urdin)",
+      sat:"Saturazioa",lum:"Argitasunaren eragina",gamma:"Gamma",black:"Beltz-maila",extraTitle:"Gehigarriak",
+      parallax:"Paralaxea",parHint:"Kanalen desplazamendu fisikoa sakoneraren arabera. 0 = kromoestereopsia hutsa.",
+      view:"Ikuspegia",viewResult:"Emaitza",viewDepth:"Sakonera",reset:"Berrezarri",export:"Esportatu PNG",
+      tip:"Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili \"alderantzikatu estereoa\".",
+      empty:"Kargatu irudi bat|hasteko"},
+  es:{tagline:"cromoestereopsis · mapa de profundidad",sources:"Fuentes",image:"Imagen",depth:"Mapa de profundidad",
+      dropHint:"Arrastra o haz clic",dropDepthHint:"Opcional · si no, luminancia",
+      auto:"Generar automáticamente",autoSub:"Depth Anything V2 · en el navegador",
+      stLoad:"Cargando librería…",stDownload:"Descargando modelo",stRun:"Calculando profundidad…",
+      stDone:"Hecho ✓",stErr:"Error — ¿red?",stNoImg:"Carga una imagen primero",
+      depthTitle:"Profundidad",srcDepth:"Mapa de prof.",srcLum:"Luminancia",invDepth:"Invertir profundidad",
+      midpoint:"Punto medio",spread:"Amplitud",colorTitle:"Color",invStereo:"Invertir estéreo (rojo↔azul)",
+      sat:"Saturación",lum:"Influencia de luminancia",gamma:"Gamma",black:"Nivel de negro",extraTitle:"Extras",
+      parallax:"Paralaje",parHint:"Desplazamiento físico de canales según profundidad. 0 = cromoestereopsis pura.",
+      view:"Vista",viewResult:"Resultado",viewDepth:"Profundidad",reset:"Restablecer",export:"Exportar PNG",
+      tip:"Consejo: rojo delante, azul detrás. ~⅓ de la gente lo ve invertido — usa \"invertir estéreo\".",
+      empty:"Carga una imagen|para empezar"},
+  en:{tagline:"chromostereopsis · depth map",sources:"Sources",image:"Image",depth:"Depth map",
+      dropHint:"Drag or click",dropDepthHint:"Optional · else luminance",
+      auto:"Auto-generate",autoSub:"Depth Anything V2 · in browser",
+      stLoad:"Loading library…",stDownload:"Downloading model",stRun:"Estimating depth…",
+      stDone:"Done ✓",stErr:"Error — network?",stNoImg:"Load an image first",
+      depthTitle:"Depth",srcDepth:"Depth map",srcLum:"Luminance",invDepth:"Invert depth",
+      midpoint:"Midpoint",spread:"Spread",colorTitle:"Color",invStereo:"Invert stereo (red↔blue)",
+      sat:"Saturation",lum:"Luminance influence",gamma:"Gamma",black:"Black level",extraTitle:"Extras",
+      parallax:"Parallax",parHint:"Physical per-channel shift by depth. 0 = pure chromostereopsis.",
+      view:"View",viewResult:"Result",viewDepth:"Depth",reset:"Reset",export:"Export PNG",
+      tip:"Tip: red forward, blue back. ~⅓ of people perceive it reversed — use \"invert stereo\".",
+      empty:"Load an image|to start"}
+};
+function applyLang(l){
+  document.documentElement.lang=l;
+  const d=I18N[l];
+  document.querySelectorAll("[data-i]").forEach(el=>{
+    const t=d[el.getAttribute("data-i")];
+    if(t===undefined) return;
+    if(el.id==="empty"){const[a,b]=t.split("|");el.innerHTML=a+"<br><span>"+b+"</span>";}
+    else el.textContent=t;
+  });
+  document.querySelectorAll(".langs button").forEach(b=>b.classList.toggle("on",b.dataset.lang===l));
+}
+
+/* ---------- WebGL ---------- */
+const cv=document.getElementById("cv");
+const gl=cv.getContext("webgl2",{preserveDrawingBuffer:true,antialias:false});
+if(!gl){alert("WebGL2 behar da / se requiere WebGL2 / WebGL2 required");}
+
+const VERT=`#version 300 es
+const vec2 P[3]=vec2[3](vec2(-1.,-1.),vec2(3.,-1.),vec2(-1.,3.));
+out vec2 vUv;
+void main(){vec2 p=P[gl_VertexID];vUv=0.5*(p+1.0);gl_Position=vec4(p,0.,1.);}`;
+
+const FRAG=`#version 300 es
+precision highp float;
+in vec2 vUv;out vec4 o;
+uniform sampler2D uImg,uDepth;
+uniform float uUseMap,uInvDepth,uInvStereo,uMid,uSpread,uLum,uSat,uGamma,uBlack,uPar,uView;
+float L(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
+float depthAt(vec2 p){
+  vec3 c=(uUseMap>0.5)?texture(uDepth,p).rgb:texture(uImg,p).rgb;
+  float d=L(c);
+  if(uInvDepth>0.5)d=1.0-d;
+  return d;
+}
+vec3 composeAt(vec2 p){
+  float d=depthAt(p);
+  float t=clamp((d-uMid)*uSpread+0.5,0.0,1.0);
+  if(uInvStereo>0.5)t=1.0-t;
+  return mix(vec3(0.,0.,1.),vec3(1.,0.,0.),t); // blue..red, green=0
+}
+void main(){
+  vec2 uv=vec2(vUv.x,1.0-vUv.y);
+  float d=depthAt(uv);
+  if(uView>0.5){o=vec4(vec3(d),1.0);return;}
+  vec2 off=vec2(uPar*(d-0.5),0.0);
+  vec3 cR=composeAt(uv+off);
+  vec3 cB=composeAt(uv-off);
+  vec3 col=vec3(cR.r,0.0,cB.b);
+  float b=L(texture(uImg,uv).rgb);
+  b=pow(clamp(b,0.0,1.0),uGamma);
+  b=smoothstep(uBlack,1.0,b);
+  float bright=mix(1.0,b,uLum);
+  col*=bright;
+  float g=L(col);
+  col=mix(vec3(g),col,uSat);
+  o=vec4(col,1.0);
+}`;
+
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS))console.error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const vao=gl.createVertexArray();gl.bindVertexArray(vao);
+
+const U={};
+["uImg","uDepth","uUseMap","uInvDepth","uInvStereo","uMid","uSpread","uLum","uSat","uGamma","uBlack","uPar","uView"]
+  .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+function makeTex(unit){
+  const t=gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0+unit);
+  gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  return t;
+}
+const texImg=makeTex(0), texDepth=makeTex(1);
+gl.uniform1i(U.uImg,0);gl.uniform1i(U.uDepth,1);
+
+function upload(tex,unit,img){
+  gl.activeTexture(gl.TEXTURE0+unit);
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
+}
+
+/* ---------- state ---------- */
+const S={useMap:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0};
+let hasImage=false,hasDepth=false,currentImage=null;
+
+function render(){
+  if(!hasImage) return;
+  gl.viewport(0,0,cv.width,cv.height);
+  gl.uniform1f(U.uUseMap,(S.useMap&&hasDepth)?1:0);
+  gl.uniform1f(U.uInvDepth,S.invDepth);
+  gl.uniform1f(U.uInvStereo,S.invStereo);
+  gl.uniform1f(U.uMid,S.mid);
+  gl.uniform1f(U.uSpread,S.spread);
+  gl.uniform1f(U.uLum,S.lum);
+  gl.uniform1f(U.uSat,S.sat);
+  gl.uniform1f(U.uGamma,S.gamma);
+  gl.uniform1f(U.uBlack,S.black);
+  gl.uniform1f(U.uPar,S.par);
+  gl.uniform1f(U.uView,S.view);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+
+/* ---------- file loading ---------- */
+function loadImageFile(file,cb){
+  if(!file||!file.type.startsWith("image/")) return;
+  const url=URL.createObjectURL(file);
+  const im=new Image();
+  im.onload=()=>{cb(im,file.name);URL.revokeObjectURL(url);};
+  im.src=url;
+}
+function setImage(im,name){
+  cv.width=im.naturalWidth;cv.height=im.naturalHeight;
+  upload(texImg,0,im);
+  currentImage=im;hasImage=true;
+  document.getElementById("empty").style.display="none";
+  cv.style.display="block";
+  document.getElementById("btnExport").disabled=false;
+  markDrop("dropImage",name);
+  render();
+}
+// source can be an HTMLImageElement or a canvas
+function applyDepthSource(source,label){
+  upload(texDepth,1,source);
+  hasDepth=true;S.useMap=1;
+  syncSourceSeg();
+  markDrop("dropDepth",label);
+  render();
+}
+function setDepth(im,name){applyDepthSource(im,name);}
+function markDrop(id,name){
+  const el=document.getElementById(id);
+  el.classList.add("filled");
+  const small=el.querySelector("small");
+  small.textContent=name.length>26?name.slice(0,23)+"…":name;
+}
+
+/* wire file inputs + drops */
+function wireDrop(dropId,inputId,handler){
+  const drop=document.getElementById(dropId),input=document.getElementById(inputId);
+  drop.addEventListener("click",()=>input.click());
+  input.addEventListener("change",e=>loadImageFile(e.target.files[0],handler));
+  ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
+  ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
+  drop.addEventListener("drop",e=>{if(e.dataTransfer.files[0])loadImageFile(e.dataTransfer.files[0],handler);});
+}
+wireDrop("dropImage","fileImage",setImage);
+wireDrop("dropDepth","fileDepth",setDepth);
+
+/* ---------- controls ---------- */
+function slider(id,valId,key,fmt){
+  const r=document.getElementById(id),v=document.getElementById(valId);
+  const upd=()=>{S[key]=parseFloat(r.value);v.textContent=fmt(S[key]);render();};
+  r.addEventListener("input",upd);upd();
+  return r;
+}
+const f2=x=>x.toFixed(2),f1=x=>x.toFixed(1),f4=x=>x.toFixed(4);
+slider("rMid","vMid","mid",f2);
+slider("rSpread","vSpread","spread",f1);
+slider("rSat","vSat","sat",f2);
+slider("rLum","vLum","lum",f2);
+slider("rGamma","vGamma","gamma",f2);
+slider("rBlack","vBlack","black",f2);
+slider("rPar","vPar","par",f4);
+
+function toggle(id,key){
+  const el=document.getElementById(id);
+  el.addEventListener("click",()=>{S[key]=S[key]?0:1;el.classList.toggle("on",!!S[key]);render();});
+}
+toggle("tgInvertDepth","invDepth");
+toggle("tgInvertStereo","invStereo");
+
+function segment(id,key,cb){
+  const seg=document.getElementById(id);
+  seg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    seg.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    if(cb)cb(b);else{S[key]=parseFloat(b.dataset[key]);render();}
+  }));
+}
+function syncSourceSeg(){
+  const seg=document.getElementById("segSource");
+  seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",parseInt(b.dataset.src)===S.useMap));
+}
+document.getElementById("segSource").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  S.useMap=parseInt(b.dataset.src);syncSourceSeg();render();
+}));
+document.getElementById("segView").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  document.getElementById("segView").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");S.view=parseInt(b.dataset.view);render();
+}));
+
+/* ---------- reset / export ---------- */
+document.getElementById("btnReset").addEventListener("click",()=>{
+  const def={useMap:hasDepth?1:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0};
+  Object.assign(S,def);
+  const set=(id,v)=>{const el=document.getElementById(id);el.value=v;el.dispatchEvent(new Event("input"));};
+  set("rMid",0.5);set("rSpread",2);set("rSat",1);set("rLum",0.6);set("rGamma",1);set("rBlack",0.05);set("rPar",0);
+  document.getElementById("tgInvertDepth").classList.remove("on");
+  document.getElementById("tgInvertStereo").classList.remove("on");
+  syncSourceSeg();
+  const sv=document.getElementById("segView");
+  sv.querySelectorAll("button").forEach((x,i)=>x.classList.toggle("on",i===0));
+  render();
+});
+document.getElementById("btnExport").addEventListener("click",()=>{
+  render();
+  cv.toBlob(b=>{
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(b);
+    a.download="kromstr_"+Date.now()+".png";
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  },"image/png");
+});
+
+/* ---------- auto depth (Depth Anything V2) ---------- */
+const btnAuto=document.getElementById("btnAuto");
+const autoStatus=document.getElementById("autoStatus");
+const curLang=()=>I18N[document.documentElement.lang];
+async function runAuto(){
+  if(!hasImage){autoStatus.textContent=curLang().stNoImg;return;}
+  if(!window.__gorrDepth){autoStatus.textContent=curLang().stLoad;return;}
+  btnAuto.disabled=true;
+  autoStatus.textContent=curLang().stLoad;
+  try{
+    const c=document.createElement("canvas");
+    c.width=currentImage.naturalWidth;c.height=currentImage.naturalHeight;
+    c.getContext("2d").drawImage(currentImage,0,0);
+    const depthCanvas=await window.__gorrDepth(c,p=>{
+      if(p&&p.status==="progress"&&p.total){
+        const pct=Math.round((p.loaded/p.total)*100);
+        autoStatus.textContent=curLang().stDownload+" "+pct+"%";
+      }
+    });
+    autoStatus.textContent=curLang().stRun;
+    applyDepthSource(depthCanvas,"Depth Anything V2");
+    autoStatus.textContent=curLang().stDone;
+  }catch(e){
+    console.error(e);
+    autoStatus.textContent=curLang().stErr;
+  }finally{
+    btnAuto.disabled=false;
+  }
+}
+btnAuto.addEventListener("click",runAuto);
+
+/* ---------- lang ---------- */
+document.querySelectorAll(".langs button").forEach(b=>b.addEventListener("click",()=>applyLang(b.dataset.lang)));
+applyLang("eu");
+</script>
+
+<script type="module">
+/* Bridge: Depth Anything V2 in the browser via Transformers.js.
+   Runs fully client-side (WebGPU if available, else WASM/CPU).
+   First run downloads the library + model from a CDN, then it's cached. */
+import { pipeline, RawImage, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
+env.allowLocalModels=false;
+
+let _estimator=null;
+function buildOnce(opt,onProgress){
+  return pipeline("depth-estimation","onnx-community/depth-anything-v2-small",
+    {...opt, progress_callback:onProgress});
+}
+async function getEstimator(onProgress){
+  if(_estimator) return _estimator;
+  // Ask the actual adapter what it supports instead of assuming fp16.
+  let primary={device:"wasm",dtype:"q8"};
+  if(navigator.gpu){
+    try{
+      const adapter=await navigator.gpu.requestAdapter();
+      if(adapter) primary={device:"webgpu",dtype:adapter.features.has("shader-f16")?"fp16":"fp32"};
+    }catch(_){}
+  }
+  try{
+    _estimator=await buildOnce(primary,onProgress);
+  }catch(e){
+    console.warn("GPU path failed, falling back to WASM/CPU:",e);
+    _estimator=await buildOnce({device:"wasm",dtype:"q8"},onProgress);
+  }
+  return _estimator;
+}
+
+window.__gorrDepth=async function(canvas,onProgress){
+  const est=await getEstimator(onProgress);
+  const out=await est(RawImage.fromCanvas(canvas));
+  return out.depth.toCanvas();
+};
+</script>
+</body>
+</html>
