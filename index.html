@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KROMSTR — kromoestereopsia</title>
+<title>KRMSTR — kromoestereopsia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -86,7 +86,18 @@
     font-size:15px;letter-spacing:2px;color:var(--gold);
     margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);
     text-transform:uppercase;
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
   }
+  .mini{
+    background:none;border:0;color:var(--muted);font-family:"JetBrains Mono",monospace;
+    font-size:10px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;padding:0;
+  }
+  .mini:hover{color:var(--vermilion)}
+  .sel{
+    width:100%;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:2px;font-family:inherit;font-size:12px;padding:8px;cursor:pointer;margin-top:4px;
+  }
+  .sel:focus{outline:none;border-color:var(--gold)}
   .drop{
     border:1px dashed var(--line);border-radius:3px;
     padding:14px 10px;text-align:center;cursor:pointer;
@@ -234,6 +245,54 @@
     </div>
 
     <div class="group">
+      <h2 data-i="imageTitle">Irudia</h2>
+      <div class="row"><label data-i="brightness">Argitasuna</label><span class="val" id="vBright">100</span></div>
+      <input type="range" id="rBright" min="0" max="200" step="1" value="100">
+      <div class="row"><label data-i="contrast">Kontrastea</label><span class="val" id="vContrast">100</span></div>
+      <input type="range" id="rContrast" min="0" max="200" step="1" value="100">
+      <div class="row"><label data-i="satG">Saturazioa</label><span class="val" id="vSatG">100</span></div>
+      <input type="range" id="rSatG" min="0" max="200" step="1" value="100">
+      <div class="row"><label data-i="blur">Lausoa px</label><span class="val" id="vBlur">0.0</span></div>
+      <input type="range" id="rBlur" min="0" max="20" step="0.5" value="0">
+      <div class="row"><label data-i="blackPt">Puntu beltza</label><span class="val" id="vBlackPt">0</span></div>
+      <input type="range" id="rBlackPt" min="0" max="255" step="1" value="0">
+      <div class="row"><label data-i="whitePt">Puntu zuria</label><span class="val" id="vWhitePt">255</span></div>
+      <input type="range" id="rWhitePt" min="0" max="255" step="1" value="255">
+      <div class="row"><label data-i="posterize">Posterizatu</label><span class="val" id="vPost">OFF</span></div>
+      <input type="range" id="rPost" min="0" max="16" step="1" value="0">
+    </div>
+
+    <div class="group">
+      <h2><span data-i="ditherTitle">Dither · Bayer</span><button class="mini" id="btnDitherReset" data-i="reset">Berrezarri</button></h2>
+      <div class="row"><label data-i="pixelSize">Pixel tamaina</label><span class="val" id="vDScale">4</span></div>
+      <input type="range" id="rDScale" min="1" max="8" step="1" value="4">
+      <div class="row" style="margin-bottom:2px"><label data-i="matrix">Matrizea</label></div>
+      <div class="seg" id="segMatrix">
+        <button data-mat="2">2×2</button>
+        <button data-mat="4" class="on">4×4</button>
+        <button data-mat="8">8×8</button>
+      </div>
+      <div class="row"><label data-i="ataria">Ataria</label><span class="val" id="vAtaria">0.00</span></div>
+      <input type="range" id="rAtaria" min="-0.5" max="0.5" step="0.01" value="0">
+      <div class="toggle" id="tgDitherInvert">
+        <label data-i="ditherInvert">Alderantzikatu</label><div class="sw"></div>
+      </div>
+      <div class="row" style="margin-bottom:2px"><label data-i="blendModeLabel">Fusio-modua</label></div>
+      <select id="selBlend" class="sel">
+        <option value="0">Normal</option>
+        <option value="1">Multiply</option>
+        <option value="2">Screen</option>
+        <option value="3">Overlay</option>
+        <option value="4">Dodge</option>
+        <option value="5">Burn</option>
+        <option value="6">Difference</option>
+      </select>
+      <div class="row"><label data-i="fusion">Fusioa</label><span class="val" id="vFusion">0.00</span></div>
+      <input type="range" id="rFusion" min="0" max="1" step="0.01" value="0">
+      <div class="hint" data-i="fusionHint">Fusioa: 0 = efektu garbia · 1 = dither osoa. Ataria = mugaren doikuntza.</div>
+    </div>
+
+    <div class="group">
       <h2 data-i="extraTitle">Gehigarriak</h2>
       <div class="row"><label data-i="parallax">Paralaxea</label><span class="val" id="vPar">0.0</span></div>
       <input type="range" id="rPar" min="0" max="0.02" step="0.0005" value="0">
@@ -274,6 +333,11 @@ const I18N = {
       midpoint:"Erdiko puntua",spread:"Zabalera",colorTitle:"Kolorea",invStereo:"Alderantzikatu estereoa (gorri↔urdin)",
       sat:"Saturazioa",lum:"Argitasunaren eragina",gamma:"Gamma",black:"Beltz-maila",extraTitle:"Gehigarriak",
       parallax:"Paralaxea",parHint:"Kanalen desplazamendu fisikoa sakoneraren arabera. 0 = kromoestereopsia hutsa.",
+      dither:"Dither",ditherTitle:"Dither · Bayer",pixelSize:"Pixel tamaina",matrix:"Matrizea",ataria:"Ataria",
+      ditherInvert:"Alderantzikatu",fusion:"Fusioa",
+      fusionHint:"Fusioa: dither-a irudiaren gainean nola nahastu. Modua + kopurua.",
+      imageTitle:"Irudia",brightness:"Argitasuna",contrast:"Kontrastea",satG:"Saturazioa",blur:"Lausoa px",
+      blackPt:"Puntu beltza",whitePt:"Puntu zuria",posterize:"Posterizatu",blendModeLabel:"Fusio-modua",
       view:"Ikuspegia",viewResult:"Emaitza",viewDepth:"Sakonera",reset:"Berrezarri",export:"Esportatu PNG",
       tip:"Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili \"alderantzikatu estereoa\".",
       empty:"Kargatu irudi bat|hasteko"},
@@ -286,6 +350,11 @@ const I18N = {
       midpoint:"Punto medio",spread:"Amplitud",colorTitle:"Color",invStereo:"Invertir estéreo (rojo↔azul)",
       sat:"Saturación",lum:"Influencia de luminancia",gamma:"Gamma",black:"Nivel de negro",extraTitle:"Extras",
       parallax:"Paralaje",parHint:"Desplazamiento físico de canales según profundidad. 0 = cromoestereopsis pura.",
+      dither:"Dither",ditherTitle:"Dither · Bayer",pixelSize:"Tamaño de píxel",matrix:"Matriz",ataria:"Umbral",
+      ditherInvert:"Invertir",fusion:"Fusión",
+      fusionHint:"Fusión: cómo se mezcla el dither sobre la imagen. Modo + cantidad.",
+      imageTitle:"Imagen",brightness:"Brillo",contrast:"Contraste",satG:"Saturación",blur:"Desenfoque px",
+      blackPt:"Punto negro",whitePt:"Punto blanco",posterize:"Posterizar",blendModeLabel:"Modo de fusión",
       view:"Vista",viewResult:"Resultado",viewDepth:"Profundidad",reset:"Restablecer",export:"Exportar PNG",
       tip:"Consejo: rojo delante, azul detrás. ~⅓ de la gente lo ve invertido — usa \"invertir estéreo\".",
       empty:"Carga una imagen|para empezar"},
@@ -298,6 +367,11 @@ const I18N = {
       midpoint:"Midpoint",spread:"Spread",colorTitle:"Color",invStereo:"Invert stereo (red↔blue)",
       sat:"Saturation",lum:"Luminance influence",gamma:"Gamma",black:"Black level",extraTitle:"Extras",
       parallax:"Parallax",parHint:"Physical per-channel shift by depth. 0 = pure chromostereopsis.",
+      dither:"Dither",ditherTitle:"Dither · Bayer",pixelSize:"Pixel size",matrix:"Matrix",ataria:"Threshold",
+      ditherInvert:"Invert",fusion:"Blend",
+      fusionHint:"Blend: how the dither mixes over the image. Mode + amount.",
+      imageTitle:"Image",brightness:"Brightness",contrast:"Contrast",satG:"Saturation",blur:"Blur px",
+      blackPt:"Black point",whitePt:"White point",posterize:"Posterize",blendModeLabel:"Blend mode",
       view:"View",viewResult:"Result",viewDepth:"Depth",reset:"Reset",export:"Export PNG",
       tip:"Tip: red forward, blue back. ~⅓ of people perceive it reversed — use \"invert stereo\".",
       empty:"Load an image|to start"}
@@ -328,7 +402,8 @@ const FRAG=`#version 300 es
 precision highp float;
 in vec2 vUv;out vec4 o;
 uniform sampler2D uImg,uDepth;
-uniform float uUseMap,uInvDepth,uInvStereo,uMid,uSpread,uLum,uSat,uGamma,uBlack,uPar,uView;
+uniform float uUseMap,uInvDepth,uInvStereo,uMid,uSpread,uLum,uSat,uGamma,uBlack,uPar,uView,uDitherScale,uDitherMatrix,uDitherAtaria,uDitherInvert,uDitherBlend,uBright,uContrast,uSatG,uBlackPt,uWhitePt,uPost,uBlur,uBlendMode;
+uniform vec2 uRes;
 float L(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
 float depthAt(vec2 p){
   vec3 c=(uUseMap>0.5)?texture(uDepth,p).rgb:texture(uImg,p).rgb;
@@ -342,22 +417,72 @@ vec3 composeAt(vec2 p){
   if(uInvStereo>0.5)t=1.0-t;
   return mix(vec3(0.,0.,1.),vec3(1.,0.,0.),t); // blue..red, green=0
 }
+const float B2[4]=float[4](0.0,2.0,3.0,1.0);
+const float B4[16]=float[16](
+ 0.0,8.0,2.0,10.0, 12.0,4.0,14.0,6.0, 3.0,11.0,1.0,9.0, 15.0,7.0,13.0,5.0);
+const float B8[64]=float[64](
+ 0.0,32.0,8.0,40.0,2.0,34.0,10.0,42.0,
+ 48.0,16.0,56.0,24.0,50.0,18.0,58.0,26.0,
+ 12.0,44.0,4.0,36.0,14.0,46.0,6.0,38.0,
+ 60.0,28.0,52.0,20.0,62.0,30.0,54.0,22.0,
+ 3.0,35.0,11.0,43.0,1.0,33.0,9.0,41.0,
+ 51.0,19.0,59.0,27.0,49.0,17.0,57.0,25.0,
+ 15.0,47.0,7.0,39.0,13.0,45.0,5.0,37.0,
+ 63.0,31.0,55.0,23.0,61.0,29.0,53.0,21.0);
+float bayerT(vec2 p,float m){
+  if(m<2.5){ivec2 i=ivec2(mod(p,2.0));return (B2[i.y*2+i.x]+0.5)/4.0;}
+  if(m<4.5){ivec2 i=ivec2(mod(p,4.0));return (B4[i.y*4+i.x]+0.5)/16.0;}
+  ivec2 i=ivec2(mod(p,8.0));return (B8[i.y*8+i.x]+0.5)/64.0;
+}
+vec3 grade(vec3 c){
+  c*=uBright;                                   // brightness (1.0 neutral)
+  c=(c-0.5)*uContrast+0.5;                       // contrast (1.0 neutral)
+  float g=L(c);c=mix(vec3(g),c,uSatG);           // saturation (1.0 neutral)
+  c=(c-uBlackPt)/max(uWhitePt-uBlackPt,1e-3);    // input levels
+  c=clamp(c,0.0,1.0);
+  if(uPost>1.5)c=clamp(floor(c*uPost)/(uPost-1.0),0.0,1.0); // posterize
+  return c;
+}
+vec3 effectAt(vec2 uv){
+  float d=depthAt(uv);
+  vec2 off=vec2(uPar*(d-0.5),0.0);
+  vec3 cR=composeAt(uv+off),cB=composeAt(uv-off);
+  vec3 col=vec3(cR.r,0.0,cB.b);
+  float b=pow(clamp(L(texture(uImg,uv).rgb),0.0,1.0),uGamma);
+  b=smoothstep(uBlack,1.0,b);
+  col*=mix(1.0,b,uLum);
+  float g=L(col);col=mix(vec3(g),col,uSat);
+  return grade(col);
+}
+vec3 blendMode(vec3 a,vec3 b,float m){
+  if(m<0.5)return b;                                     // normal
+  if(m<1.5)return a*b;                                   // multiply
+  if(m<2.5)return 1.0-(1.0-a)*(1.0-b);                   // screen
+  if(m<3.5)return mix(2.0*a*b,1.0-2.0*(1.0-a)*(1.0-b),step(vec3(0.5),a)); // overlay
+  if(m<4.5)return a/max(1.0-b,vec3(1e-3));               // color dodge
+  if(m<5.5)return 1.0-(1.0-a)/max(b,vec3(1e-3));         // color burn
+  return abs(a-b);                                       // difference
+}
 void main(){
   vec2 uv=vec2(vUv.x,1.0-vUv.y);
-  float d=depthAt(uv);
-  if(uView>0.5){o=vec4(vec3(d),1.0);return;}
-  vec2 off=vec2(uPar*(d-0.5),0.0);
-  vec3 cR=composeAt(uv+off);
-  vec3 cB=composeAt(uv-off);
-  vec3 col=vec3(cR.r,0.0,cB.b);
-  float b=L(texture(uImg,uv).rgb);
-  b=pow(clamp(b,0.0,1.0),uGamma);
-  b=smoothstep(uBlack,1.0,b);
-  float bright=mix(1.0,b,uLum);
-  col*=bright;
-  float g=L(col);
-  col=mix(vec3(g),col,uSat);
-  o=vec4(col,1.0);
+  if(uView>0.5){o=vec4(vec3(depthAt(uv)),1.0);return;}
+  vec3 base;
+  if(uBlur>0.0){
+    vec3 acc=vec3(0.0);
+    for(int y=-2;y<=2;y++)for(int x=-2;x<=2;x++){
+      acc+=effectAt(uv+vec2(float(x),float(y))*(uBlur*0.5)/uRes);
+    }
+    base=acc/25.0;
+  }else base=effectAt(uv);
+  vec3 outc=base;
+  if(uDitherBlend>0.0){
+    vec2 fc=floor(gl_FragCoord.xy/max(uDitherScale,1.0));
+    float thr=clamp(bayerT(fc,uDitherMatrix)+uDitherAtaria,0.0,1.0);
+    vec3 dc=vec3(step(thr,base.r),step(thr,base.g),step(thr,base.b));
+    if(uDitherInvert>0.5)dc=1.0-dc;
+    outc=mix(base,blendMode(base,dc,uBlendMode),uDitherBlend);
+  }
+  o=vec4(clamp(outc,0.0,1.0),1.0);
 }`;
 
 function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
@@ -371,7 +496,7 @@ gl.useProgram(prog);
 const vao=gl.createVertexArray();gl.bindVertexArray(vao);
 
 const U={};
-["uImg","uDepth","uUseMap","uInvDepth","uInvStereo","uMid","uSpread","uLum","uSat","uGamma","uBlack","uPar","uView"]
+["uImg","uDepth","uUseMap","uInvDepth","uInvStereo","uMid","uSpread","uLum","uSat","uGamma","uBlack","uPar","uView","uDitherScale","uDitherMatrix","uDitherAtaria","uDitherInvert","uDitherBlend","uBright","uContrast","uSatG","uBlackPt","uWhitePt","uPost","uBlur","uBlendMode","uRes"]
   .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
 
 function makeTex(unit){
@@ -395,7 +520,7 @@ function upload(tex,unit,img){
 }
 
 /* ---------- state ---------- */
-const S={useMap:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0};
+const S={useMap:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0};
 let hasImage=false,hasDepth=false,currentImage=null;
 
 function render(){
@@ -412,6 +537,20 @@ function render(){
   gl.uniform1f(U.uBlack,S.black);
   gl.uniform1f(U.uPar,S.par);
   gl.uniform1f(U.uView,S.view);
+  gl.uniform1f(U.uDitherScale,S.ditherScale);
+  gl.uniform1f(U.uDitherMatrix,S.ditherMatrix);
+  gl.uniform1f(U.uDitherAtaria,S.ditherAtaria);
+  gl.uniform1f(U.uDitherInvert,S.ditherInvert);
+  gl.uniform1f(U.uDitherBlend,S.ditherBlend);
+  gl.uniform1f(U.uBright,S.brightness/100);
+  gl.uniform1f(U.uContrast,S.contrast/100);
+  gl.uniform1f(U.uSatG,S.satG/100);
+  gl.uniform1f(U.uBlackPt,S.blackPt/255);
+  gl.uniform1f(U.uWhitePt,S.whitePt/255);
+  gl.uniform1f(U.uPost,S.post);
+  gl.uniform1f(U.uBlur,S.blur);
+  gl.uniform1f(U.uBlendMode,S.blendMode);
+  gl.uniform2f(U.uRes,cv.width,cv.height);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 
@@ -476,6 +615,16 @@ slider("rLum","vLum","lum",f2);
 slider("rGamma","vGamma","gamma",f2);
 slider("rBlack","vBlack","black",f2);
 slider("rPar","vPar","par",f4);
+slider("rDScale","vDScale","ditherScale",x=>x.toFixed(0));
+slider("rAtaria","vAtaria","ditherAtaria",f2);
+slider("rFusion","vFusion","ditherBlend",f2);
+slider("rBright","vBright","brightness",x=>x.toFixed(0));
+slider("rContrast","vContrast","contrast",x=>x.toFixed(0));
+slider("rSatG","vSatG","satG",x=>x.toFixed(0));
+slider("rBlur","vBlur","blur",f1);
+slider("rBlackPt","vBlackPt","blackPt",x=>x.toFixed(0));
+slider("rWhitePt","vWhitePt","whitePt",x=>x.toFixed(0));
+slider("rPost","vPost","post",x=>x<2?"OFF":x.toFixed(0));
 
 function toggle(id,key){
   const el=document.getElementById(id);
@@ -483,6 +632,7 @@ function toggle(id,key){
 }
 toggle("tgInvertDepth","invDepth");
 toggle("tgInvertStereo","invStereo");
+toggle("tgDitherInvert","ditherInvert");
 
 function segment(id,key,cb){
   const seg=document.getElementById(id);
@@ -503,15 +653,34 @@ document.getElementById("segView").querySelectorAll("button").forEach(b=>b.addEv
   document.getElementById("segView").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");S.view=parseInt(b.dataset.view);render();
 }));
+document.getElementById("segMatrix").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  document.getElementById("segMatrix").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");S.ditherMatrix=parseInt(b.dataset.mat);render();
+}));
+document.getElementById("selBlend").addEventListener("change",e=>{S.blendMode=parseInt(e.target.value);render();});
+document.getElementById("btnDitherReset").addEventListener("click",()=>{
+  S.ditherScale=4;S.ditherMatrix=4;S.ditherAtaria=0;S.ditherInvert=0;S.ditherBlend=0;S.blendMode=0;
+  const set=(id,v)=>{const el=document.getElementById(id);el.value=v;el.dispatchEvent(new Event("input"));};
+  set("rDScale",4);set("rAtaria",0);set("rFusion",0);
+  document.getElementById("selBlend").value="0";
+  document.getElementById("tgDitherInvert").classList.remove("on");
+  document.getElementById("segMatrix").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.mat==="4"));
+  render();
+});
 
 /* ---------- reset / export ---------- */
 document.getElementById("btnReset").addEventListener("click",()=>{
-  const def={useMap:hasDepth?1:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0};
+  const def={useMap:hasDepth?1:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0};
   Object.assign(S,def);
   const set=(id,v)=>{const el=document.getElementById(id);el.value=v;el.dispatchEvent(new Event("input"));};
   set("rMid",0.5);set("rSpread",2);set("rSat",1);set("rLum",0.6);set("rGamma",1);set("rBlack",0.05);set("rPar",0);
+  set("rDScale",4);set("rAtaria",0);set("rFusion",0);
+  set("rBright",100);set("rContrast",100);set("rSatG",100);set("rBlur",0);set("rBlackPt",0);set("rWhitePt",255);set("rPost",0);
+  document.getElementById("selBlend").value="0";
   document.getElementById("tgInvertDepth").classList.remove("on");
   document.getElementById("tgInvertStereo").classList.remove("on");
+  document.getElementById("tgDitherInvert").classList.remove("on");
+  document.getElementById("segMatrix").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.mat==="4"));
   syncSourceSeg();
   const sv=document.getElementById("segView");
   sv.querySelectorAll("button").forEach((x,i)=>x.classList.toggle("on",i===0));
@@ -522,7 +691,7 @@ document.getElementById("btnExport").addEventListener("click",()=>{
   cv.toBlob(b=>{
     const a=document.createElement("a");
     a.href=URL.createObjectURL(b);
-    a.download="kromstr_"+Date.now()+".png";
+    a.download="KRMSTR_"+Date.now()+".png";
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   },"image/png");
