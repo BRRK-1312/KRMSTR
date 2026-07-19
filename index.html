@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRMSTR — kromoestereopsia</title>
+<title>KROMSTR — kromoestereopsia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -98,6 +98,13 @@
     border-radius:2px;font-family:inherit;font-size:12px;padding:8px;cursor:pointer;margin-top:4px;
   }
   .sel:focus{outline:none;border-color:var(--gold)}
+  .vidrow{display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px}
+  .vidrow label{color:var(--muted);letter-spacing:1px;font-size:11px;text-transform:uppercase}
+  .vidrow input{
+    width:70px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:2px;font-family:inherit;font-size:12px;padding:6px;text-align:right;
+  }
+  .vidrow input:focus{outline:none;border-color:var(--gold)}
   .drop{
     border:1px dashed var(--line);border-radius:3px;
     padding:14px 10px;text-align:center;cursor:pointer;
@@ -183,7 +190,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><b>KRM</b>STR</div>
+  <div class="brand"><b>KROM</b>STR</div>
   <div class="tag" data-i="tagline">kromoestereopsia · sakonera-mapa</div>
   <div class="spacer"></div>
   <div class="langs">
@@ -210,8 +217,8 @@
         <small data-i="autoSub">Depth Anything V2 · nabigatzailean</small>
       </button>
       <div class="autostatus" id="autoStatus"></div>
-      <input type="file" id="fileImage" accept="image/*" hidden>
-      <input type="file" id="fileDepth" accept="image/*" hidden>
+      <input type="file" id="fileImage" accept="image/*,video/*" hidden>
+      <input type="file" id="fileDepth" accept="image/*,video/*" hidden>
     </div>
 
     <div class="group">
@@ -289,6 +296,10 @@
       </select>
       <div class="row"><label data-i="fusion">Fusioa</label><span class="val" id="vFusion">0.00</span></div>
       <input type="range" id="rFusion" min="0" max="1" step="0.01" value="0">
+      <div class="row"><label data-i="blackProtect">Babestu beltzak</label><span class="val" id="vBlackProt">0.08</span></div>
+      <input type="range" id="rBlackProt" min="0" max="0.5" step="0.01" value="0.08">
+      <div class="row"><label data-i="whiteProtect">Babestu zuriak</label><span class="val" id="vWhiteProt">0.00</span></div>
+      <input type="range" id="rWhiteProt" min="0" max="0.5" step="0.01" value="0">
       <div class="hint" data-i="fusionHint">Fusioa: 0 = efektu garbia · 1 = dither osoa. Ataria = mugaren doikuntza.</div>
     </div>
 
@@ -309,6 +320,11 @@
         <button class="btn" id="btnReset" data-i="reset">Berrezarri</button>
         <button class="btn primary" id="btnExport" data-i="export" disabled>Esportatu PNG</button>
       </div>
+      <div class="vidrow" id="vidRow" style="display:none">
+        <label data-i="fps">FPS</label>
+        <input type="number" id="inpFps" min="1" max="60" value="30">
+      </div>
+      <div class="autostatus" id="exportStatus"></div>
       <div class="hint" data-i="tip">Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili "alderantzikatu estereoa".</div>
     </div>
   </aside>
@@ -325,7 +341,7 @@
 /* ---------- i18n ---------- */
 const I18N = {
   eu:{tagline:"kromoestereopsia · sakonera-mapa",sources:"Iturriak",image:"Irudia",depth:"Sakonera-mapa",
-      dropHint:"Arrastatu edo egin klik",dropDepthHint:"Aukerakoa · bestela argitasuna",
+      dropHint:"Irudia edo bideoa",dropDepthHint:"Aukerakoa · irudia edo bideoa",
       auto:"Sortu automatikoki",autoSub:"Depth Anything V2 · nabigatzailean",
       stLoad:"Liburutegia kargatzen…",stDownload:"Modeloa deskargatzen",stRun:"Sakonera kalkulatzen…",
       stDone:"Eginda ✓",stErr:"Errorea — sarea?",stNoImg:"Kargatu irudi bat lehenik",
@@ -338,11 +354,13 @@ const I18N = {
       fusionHint:"Fusioa: dither-a irudiaren gainean nola nahastu. Modua + kopurua.",
       imageTitle:"Irudia",brightness:"Argitasuna",contrast:"Kontrastea",satG:"Saturazioa",blur:"Lausoa px",
       blackPt:"Puntu beltza",whitePt:"Puntu zuria",posterize:"Posterizatu",blendModeLabel:"Fusio-modua",
+      exportVideo:"Esportatu MP4",fps:"FPS",stRec:"Grabatzen…",stFf:"ffmpeg kargatzen…",stEnc:"MP4 kodetzen…",stMp4Fail:"MP4 huts — WebM gordeta",stExpDone:"Esportatuta ✓",
+      blackProtect:"Babestu beltzak",whiteProtect:"Babestu zuriak",
       view:"Ikuspegia",viewResult:"Emaitza",viewDepth:"Sakonera",reset:"Berrezarri",export:"Esportatu PNG",
       tip:"Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili \"alderantzikatu estereoa\".",
       empty:"Kargatu irudi bat|hasteko"},
   es:{tagline:"cromoestereopsis · mapa de profundidad",sources:"Fuentes",image:"Imagen",depth:"Mapa de profundidad",
-      dropHint:"Arrastra o haz clic",dropDepthHint:"Opcional · si no, luminancia",
+      dropHint:"Imagen o vídeo",dropDepthHint:"Opcional · imagen o vídeo",
       auto:"Generar automáticamente",autoSub:"Depth Anything V2 · en el navegador",
       stLoad:"Cargando librería…",stDownload:"Descargando modelo",stRun:"Calculando profundidad…",
       stDone:"Hecho ✓",stErr:"Error — ¿red?",stNoImg:"Carga una imagen primero",
@@ -355,11 +373,13 @@ const I18N = {
       fusionHint:"Fusión: cómo se mezcla el dither sobre la imagen. Modo + cantidad.",
       imageTitle:"Imagen",brightness:"Brillo",contrast:"Contraste",satG:"Saturación",blur:"Desenfoque px",
       blackPt:"Punto negro",whitePt:"Punto blanco",posterize:"Posterizar",blendModeLabel:"Modo de fusión",
+      exportVideo:"Exportar MP4",fps:"FPS",stRec:"Grabando…",stFf:"Cargando ffmpeg…",stEnc:"Codificando MP4…",stMp4Fail:"MP4 falló — guardado WebM",stExpDone:"Exportado ✓",
+      blackProtect:"Proteger negros",whiteProtect:"Proteger blancos",
       view:"Vista",viewResult:"Resultado",viewDepth:"Profundidad",reset:"Restablecer",export:"Exportar PNG",
       tip:"Consejo: rojo delante, azul detrás. ~⅓ de la gente lo ve invertido — usa \"invertir estéreo\".",
       empty:"Carga una imagen|para empezar"},
   en:{tagline:"chromostereopsis · depth map",sources:"Sources",image:"Image",depth:"Depth map",
-      dropHint:"Drag or click",dropDepthHint:"Optional · else luminance",
+      dropHint:"Image or video",dropDepthHint:"Optional · image or video",
       auto:"Auto-generate",autoSub:"Depth Anything V2 · in browser",
       stLoad:"Loading library…",stDownload:"Downloading model",stRun:"Estimating depth…",
       stDone:"Done ✓",stErr:"Error — network?",stNoImg:"Load an image first",
@@ -372,6 +392,8 @@ const I18N = {
       fusionHint:"Blend: how the dither mixes over the image. Mode + amount.",
       imageTitle:"Image",brightness:"Brightness",contrast:"Contrast",satG:"Saturation",blur:"Blur px",
       blackPt:"Black point",whitePt:"White point",posterize:"Posterize",blendModeLabel:"Blend mode",
+      exportVideo:"Export MP4",fps:"FPS",stRec:"Recording…",stFf:"Loading ffmpeg…",stEnc:"Encoding MP4…",stMp4Fail:"MP4 failed — saved WebM",stExpDone:"Exported ✓",
+      blackProtect:"Protect blacks",whiteProtect:"Protect whites",
       view:"View",viewResult:"Result",viewDepth:"Depth",reset:"Reset",export:"Export PNG",
       tip:"Tip: red forward, blue back. ~⅓ of people perceive it reversed — use \"invert stereo\".",
       empty:"Load an image|to start"}
@@ -402,7 +424,7 @@ const FRAG=`#version 300 es
 precision highp float;
 in vec2 vUv;out vec4 o;
 uniform sampler2D uImg,uDepth;
-uniform float uUseMap,uInvDepth,uInvStereo,uMid,uSpread,uLum,uSat,uGamma,uBlack,uPar,uView,uDitherScale,uDitherMatrix,uDitherAtaria,uDitherInvert,uDitherBlend,uBright,uContrast,uSatG,uBlackPt,uWhitePt,uPost,uBlur,uBlendMode;
+uniform float uUseMap,uInvDepth,uInvStereo,uMid,uSpread,uLum,uSat,uGamma,uBlack,uPar,uView,uDitherScale,uDitherMatrix,uDitherAtaria,uDitherInvert,uDitherBlend,uBright,uContrast,uSatG,uBlackPt,uWhitePt,uPost,uBlur,uBlendMode,uBlackProtect,uWhiteProtect;
 uniform vec2 uRes;
 float L(vec3 c){return dot(c,vec3(0.299,0.587,0.114));}
 float depthAt(vec2 p){
@@ -480,7 +502,10 @@ void main(){
     float thr=clamp(bayerT(fc,uDitherMatrix)+uDitherAtaria,0.0,1.0);
     vec3 dc=vec3(step(thr,base.r),step(thr,base.g),step(thr,base.b));
     if(uDitherInvert>0.5)dc=1.0-dc;
-    outc=mix(base,blendMode(base,dc,uBlendMode),uDitherBlend);
+    float v=max(max(base.r,base.g),base.b);              // value by max channel
+    float mask=smoothstep(0.0,max(uBlackProtect,1e-4),v);          // keep shadows clean
+    mask*=1.0-smoothstep(1.0-max(uWhiteProtect,1e-4),1.0,v);       // keep highlights clean
+    outc=mix(base,blendMode(base,dc,uBlendMode),uDitherBlend*mask);
   }
   o=vec4(clamp(outc,0.0,1.0),1.0);
 }`;
@@ -496,7 +521,7 @@ gl.useProgram(prog);
 const vao=gl.createVertexArray();gl.bindVertexArray(vao);
 
 const U={};
-["uImg","uDepth","uUseMap","uInvDepth","uInvStereo","uMid","uSpread","uLum","uSat","uGamma","uBlack","uPar","uView","uDitherScale","uDitherMatrix","uDitherAtaria","uDitherInvert","uDitherBlend","uBright","uContrast","uSatG","uBlackPt","uWhitePt","uPost","uBlur","uBlendMode","uRes"]
+["uImg","uDepth","uUseMap","uInvDepth","uInvStereo","uMid","uSpread","uLum","uSat","uGamma","uBlack","uPar","uView","uDitherScale","uDitherMatrix","uDitherAtaria","uDitherInvert","uDitherBlend","uBright","uContrast","uSatG","uBlackPt","uWhitePt","uPost","uBlur","uBlendMode","uRes","uBlackProtect","uWhiteProtect"]
   .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
 
 function makeTex(unit){
@@ -520,8 +545,9 @@ function upload(tex,unit,img){
 }
 
 /* ---------- state ---------- */
-const S={useMap:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0};
+const S={useMap:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0,blackProtect:0.08,whiteProtect:0};
 let hasImage=false,hasDepth=false,currentImage=null;
+let colorIsVideo=false,depthIsVideo=false,depthMedia=null,rafId=null,exportFps=30;
 
 function render(){
   if(!hasImage) return;
@@ -550,37 +576,83 @@ function render(){
   gl.uniform1f(U.uPost,S.post);
   gl.uniform1f(U.uBlur,S.blur);
   gl.uniform1f(U.uBlendMode,S.blendMode);
+  gl.uniform1f(U.uBlackProtect,S.blackProtect);
+  gl.uniform1f(U.uWhiteProtect,S.whiteProtect);
   gl.uniform2f(U.uRes,cv.width,cv.height);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 
 /* ---------- file loading ---------- */
-function loadImageFile(file,cb){
-  if(!file||!file.type.startsWith("image/")) return;
+function loadMediaFile(file,cbImg,cbVid){
+  if(!file) return;
   const url=URL.createObjectURL(file);
-  const im=new Image();
-  im.onload=()=>{cb(im,file.name);URL.revokeObjectURL(url);};
-  im.src=url;
+  if(file.type.startsWith("video/")){
+    const v=document.createElement("video");
+    v.muted=true;v.loop=true;v.playsInline=true;
+    v.onloadeddata=()=>cbVid(v,file.name);
+    v.src=url;v.play().catch(()=>{});
+  }else if(file.type.startsWith("image/")){
+    const im=new Image();
+    im.onload=()=>{cbImg(im,file.name);URL.revokeObjectURL(url);};
+    im.src=url;
+  }
 }
+function loop(){
+  rafId=requestAnimationFrame(loop);
+  if(colorIsVideo&&currentImage.readyState>=2)upload(texImg,0,currentImage);
+  if(depthIsVideo&&depthMedia&&depthMedia.readyState>=2){
+    if(colorIsVideo&&Math.abs(depthMedia.currentTime-currentImage.currentTime)>0.1)
+      depthMedia.currentTime=currentImage.currentTime;
+    upload(texDepth,1,depthMedia);
+  }
+  render();
+}
+function startLoop(){if(rafId==null)rafId=requestAnimationFrame(loop);}
+function stopLoop(){if(rafId!=null){cancelAnimationFrame(rafId);rafId=null;}}
 function setImage(im,name){
   cv.width=im.naturalWidth;cv.height=im.naturalHeight;
   upload(texImg,0,im);
-  currentImage=im;hasImage=true;
+  currentImage=im;colorIsVideo=false;hasImage=true;
   document.getElementById("empty").style.display="none";
   cv.style.display="block";
   document.getElementById("btnExport").disabled=false;
+  setExportLabel();
+  document.getElementById("vidRow").style.display=depthIsVideo?"flex":"none";
+  document.getElementById("btnAuto").disabled=false;
   markDrop("dropImage",name);
-  render();
+  if(depthIsVideo)startLoop();else{stopLoop();render();}
+}
+function setColorVideo(v,name){
+  cv.width=v.videoWidth;cv.height=v.videoHeight;
+  upload(texImg,0,v);
+  currentImage=v;colorIsVideo=true;hasImage=true;
+  document.getElementById("empty").style.display="none";
+  cv.style.display="block";
+  document.getElementById("btnExport").disabled=false;
+  setExportLabel();
+  document.getElementById("vidRow").style.display="flex";
+  document.getElementById("btnAuto").disabled=true;
+  markDrop("dropImage",name);
+  v.play().catch(()=>{});
+  startLoop();
 }
 // source can be an HTMLImageElement or a canvas
 function applyDepthSource(source,label){
   upload(texDepth,1,source);
-  hasDepth=true;S.useMap=1;
+  depthMedia=source;hasDepth=true;S.useMap=1;
   syncSourceSeg();
   markDrop("dropDepth",label);
   render();
 }
-function setDepth(im,name){applyDepthSource(im,name);}
+function setDepth(im,name){depthIsVideo=false;applyDepthSource(im,name);}
+function setDepthVideo(v,name){
+  upload(texDepth,1,v);
+  depthMedia=v;depthIsVideo=true;hasDepth=true;S.useMap=1;
+  syncSourceSeg();
+  markDrop("dropDepth",name);
+  v.play().catch(()=>{});
+  startLoop();
+}
 function markDrop(id,name){
   const el=document.getElementById(id);
   el.classList.add("filled");
@@ -589,16 +661,16 @@ function markDrop(id,name){
 }
 
 /* wire file inputs + drops */
-function wireDrop(dropId,inputId,handler){
+function wireDrop(dropId,inputId,cbImg,cbVid){
   const drop=document.getElementById(dropId),input=document.getElementById(inputId);
   drop.addEventListener("click",()=>input.click());
-  input.addEventListener("change",e=>loadImageFile(e.target.files[0],handler));
+  input.addEventListener("change",e=>loadMediaFile(e.target.files[0],cbImg,cbVid));
   ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
   ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
-  drop.addEventListener("drop",e=>{if(e.dataTransfer.files[0])loadImageFile(e.dataTransfer.files[0],handler);});
+  drop.addEventListener("drop",e=>{if(e.dataTransfer.files[0])loadMediaFile(e.dataTransfer.files[0],cbImg,cbVid);});
 }
-wireDrop("dropImage","fileImage",setImage);
-wireDrop("dropDepth","fileDepth",setDepth);
+wireDrop("dropImage","fileImage",setImage,setColorVideo);
+wireDrop("dropDepth","fileDepth",setDepth,setDepthVideo);
 
 /* ---------- controls ---------- */
 function slider(id,valId,key,fmt){
@@ -618,6 +690,8 @@ slider("rPar","vPar","par",f4);
 slider("rDScale","vDScale","ditherScale",x=>x.toFixed(0));
 slider("rAtaria","vAtaria","ditherAtaria",f2);
 slider("rFusion","vFusion","ditherBlend",f2);
+slider("rBlackProt","vBlackProt","blackProtect",f2);
+slider("rWhiteProt","vWhiteProt","whiteProtect",f2);
 slider("rBright","vBright","brightness",x=>x.toFixed(0));
 slider("rContrast","vContrast","contrast",x=>x.toFixed(0));
 slider("rSatG","vSatG","satG",x=>x.toFixed(0));
@@ -659,9 +733,10 @@ document.getElementById("segMatrix").querySelectorAll("button").forEach(b=>b.add
 }));
 document.getElementById("selBlend").addEventListener("change",e=>{S.blendMode=parseInt(e.target.value);render();});
 document.getElementById("btnDitherReset").addEventListener("click",()=>{
-  S.ditherScale=4;S.ditherMatrix=4;S.ditherAtaria=0;S.ditherInvert=0;S.ditherBlend=0;S.blendMode=0;
+  S.ditherScale=4;S.ditherMatrix=4;S.ditherAtaria=0;S.ditherInvert=0;S.ditherBlend=0;S.blendMode=0;S.blackProtect=0.08;S.whiteProtect=0;
   const set=(id,v)=>{const el=document.getElementById(id);el.value=v;el.dispatchEvent(new Event("input"));};
   set("rDScale",4);set("rAtaria",0);set("rFusion",0);
+  set("rBlackProt",0.08);set("rWhiteProt",0);
   document.getElementById("selBlend").value="0";
   document.getElementById("tgDitherInvert").classList.remove("on");
   document.getElementById("segMatrix").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.mat==="4"));
@@ -670,12 +745,13 @@ document.getElementById("btnDitherReset").addEventListener("click",()=>{
 
 /* ---------- reset / export ---------- */
 document.getElementById("btnReset").addEventListener("click",()=>{
-  const def={useMap:hasDepth?1:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0};
+  const def={useMap:hasDepth?1:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0,blackProtect:0.08,whiteProtect:0};
   Object.assign(S,def);
   const set=(id,v)=>{const el=document.getElementById(id);el.value=v;el.dispatchEvent(new Event("input"));};
   set("rMid",0.5);set("rSpread",2);set("rSat",1);set("rLum",0.6);set("rGamma",1);set("rBlack",0.05);set("rPar",0);
   set("rDScale",4);set("rAtaria",0);set("rFusion",0);
   set("rBright",100);set("rContrast",100);set("rSatG",100);set("rBlur",0);set("rBlackPt",0);set("rWhitePt",255);set("rPost",0);
+  set("rBlackProt",0.08);set("rWhiteProt",0);
   document.getElementById("selBlend").value="0";
   document.getElementById("tgInvertDepth").classList.remove("on");
   document.getElementById("tgInvertStereo").classList.remove("on");
@@ -687,15 +763,96 @@ document.getElementById("btnReset").addEventListener("click",()=>{
   render();
 });
 document.getElementById("btnExport").addEventListener("click",()=>{
-  render();
-  cv.toBlob(b=>{
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(b);
-    a.download="KRMSTR_"+Date.now()+".png";
-    a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  },"image/png");
+  if(colorIsVideo)exportVideo();else exportPNG();
 });
+document.getElementById("inpFps").addEventListener("change",e=>{exportFps=Math.max(1,parseInt(e.target.value)||30);});
+
+function setExportLabel(){
+  const k=colorIsVideo?"exportVideo":"export";
+  const btn=document.getElementById("btnExport");
+  btn.setAttribute("data-i",k);
+  btn.textContent=curLang()[k];
+}
+function download(blob,name){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function exportPNG(){
+  render();
+  cv.toBlob(b=>download(b,"kromstr_"+Date.now()+".png"),"image/png");
+}
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script "+src));
+    document.head.appendChild(s);
+  });
+}
+let _ffmpeg=null;
+async function getFFmpeg(){
+  if(_ffmpeg)return _ffmpeg;
+  if(!window.FFmpegUtil)await loadScript("https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js");
+  if(!window.FFmpegWASM)await loadScript("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js");
+  const {FFmpeg}=window.FFmpegWASM,{toBlobURL}=window.FFmpegUtil;
+  const ff=new FFmpeg();
+  const ffBase="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd";
+  const base="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+  await ff.load({
+    classWorkerURL:await toBlobURL(ffBase+"/814.ffmpeg.js","text/javascript"),
+    coreURL:await toBlobURL(base+"/ffmpeg-core.js","text/javascript"),
+    wasmURL:await toBlobURL(base+"/ffmpeg-core.wasm","application/wasm")
+  });
+  _ffmpeg=ff;return ff;
+}
+function recordCanvas(fps){
+  return new Promise((resolve,reject)=>{
+    const stream=cv.captureStream(fps);
+    const mime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9")?"video/webm;codecs=vp9":"video/webm";
+    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:16000000});
+    const chunks=[];
+    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    rec.onerror=reject;
+    rec.onstop=()=>resolve(new Blob(chunks,{type:"video/webm"}));
+    const restore=()=>{currentImage.loop=true;currentImage.play();if(depthIsVideo){depthMedia.loop=true;depthMedia.play();}};
+    currentImage.loop=false;if(depthIsVideo)depthMedia.loop=false;
+    currentImage.currentTime=0;if(depthIsVideo)depthMedia.currentTime=0;
+    const onEnd=()=>{currentImage.removeEventListener("ended",onEnd);rec.stop();restore();};
+    currentImage.addEventListener("ended",onEnd);
+    Promise.all([currentImage.play(),depthIsVideo?depthMedia.play():Promise.resolve()])
+      .then(()=>rec.start()).catch(reject);
+  });
+}
+async function exportVideo(){
+  const st=document.getElementById("exportStatus");
+  const btn=document.getElementById("btnExport");
+  const L=()=>curLang();
+  btn.disabled=true;
+  try{
+    st.textContent=L().stRec;
+    const webm=await recordCanvas(exportFps);
+    let outBlob=webm,outName="kromstr_"+Date.now()+".webm";
+    try{
+      st.textContent=L().stFf;
+      const ff=await getFFmpeg();
+      st.textContent=L().stEnc;
+      await ff.writeFile("in.webm",new Uint8Array(await webm.arrayBuffer()));
+      await ff.exec(["-i","in.webm","-r",String(exportFps),"-c:v","libx264","-pix_fmt","yuv420p","-crf","20","-preset","veryfast","out.mp4"]);
+      const data=await ff.readFile("out.mp4");
+      outBlob=new Blob([data.buffer],{type:"video/mp4"});
+      outName="kromstr_"+Date.now()+".mp4";
+    }catch(e){
+      console.error("ffmpeg failed, saving WebM:",e);
+      st.textContent=L().stMp4Fail;
+    }
+    download(outBlob,outName);
+    if(!st.textContent.includes("WebM"))st.textContent=L().stExpDone;
+  }catch(e){
+    console.error(e);st.textContent=L().stErr;
+  }finally{
+    btn.disabled=false;
+  }
+}
 
 /* ---------- auto depth (Depth Anything V2) ---------- */
 const btnAuto=document.getElementById("btnAuto");
@@ -703,14 +860,14 @@ const autoStatus=document.getElementById("autoStatus");
 const curLang=()=>I18N[document.documentElement.lang];
 async function runAuto(){
   if(!hasImage){autoStatus.textContent=curLang().stNoImg;return;}
-  if(!window.__gorrDepth){autoStatus.textContent=curLang().stLoad;return;}
+  if(!window.__kromDepth){autoStatus.textContent=curLang().stLoad;return;}
   btnAuto.disabled=true;
   autoStatus.textContent=curLang().stLoad;
   try{
     const c=document.createElement("canvas");
     c.width=currentImage.naturalWidth;c.height=currentImage.naturalHeight;
     c.getContext("2d").drawImage(currentImage,0,0);
-    const depthCanvas=await window.__gorrDepth(c,p=>{
+    const depthCanvas=await window.__kromDepth(c,p=>{
       if(p&&p.status==="progress"&&p.total){
         const pct=Math.round((p.loaded/p.total)*100);
         autoStatus.textContent=curLang().stDownload+" "+pct+"%";
@@ -764,7 +921,7 @@ async function getEstimator(onProgress){
   return _estimator;
 }
 
-window.__gorrDepth=async function(canvas,onProgress){
+window.__kromDepth=async function(canvas,onProgress){
   const est=await getEstimator(onProgress);
   const out=await est(RawImage.fromCanvas(canvas));
   return out.depth.toCanvas();
