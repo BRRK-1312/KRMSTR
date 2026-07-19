@@ -105,6 +105,7 @@
     border-radius:2px;font-family:inherit;font-size:12px;padding:6px;text-align:right;
   }
   .vidrow input:focus{outline:none;border-color:var(--gold)}
+  .vidrow input[type=checkbox]{width:auto;accent-color:var(--vermilion);cursor:pointer}
   .drop{
     border:1px dashed var(--line);border-radius:3px;
     padding:14px 10px;text-align:center;cursor:pointer;
@@ -323,6 +324,8 @@
       <div class="vidrow" id="vidRow" style="display:none">
         <label data-i="fps">FPS</label>
         <input type="number" id="inpFps" min="1" max="60" value="30">
+        <label data-i="audio" style="margin-left:auto">Audio</label>
+        <input type="checkbox" id="chkAudio" checked>
       </div>
       <div class="autostatus" id="exportStatus"></div>
       <div class="hint" data-i="tip">Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili "alderantzikatu estereoa".</div>
@@ -354,7 +357,7 @@ const I18N = {
       fusionHint:"Fusioa: dither-a irudiaren gainean nola nahastu. Modua + kopurua.",
       imageTitle:"Irudia",brightness:"Argitasuna",contrast:"Kontrastea",satG:"Saturazioa",blur:"Lausoa px",
       blackPt:"Puntu beltza",whitePt:"Puntu zuria",posterize:"Posterizatu",blendModeLabel:"Fusio-modua",
-      exportVideo:"Esportatu MP4",fps:"FPS",stRec:"Grabatzen…",stFf:"ffmpeg kargatzen…",stEnc:"MP4 kodetzen…",stMp4Fail:"MP4 huts — WebM gordeta",stExpDone:"Esportatuta ✓",
+      exportVideo:"Esportatu MP4",fps:"FPS",audio:"Audioa",stFf:"ffmpeg kargatzen…",stRender:"Errendatzen",stEnc:"MP4 kodetzen…",stExpDone:"Esportatuta ✓",
       blackProtect:"Babestu beltzak",whiteProtect:"Babestu zuriak",
       view:"Ikuspegia",viewResult:"Emaitza",viewDepth:"Sakonera",reset:"Berrezarri",export:"Esportatu PNG",
       tip:"Aholkua: gorria aurrera, urdina atzera. Jendearen ~⅓k alderantziz ikusten du — erabili \"alderantzikatu estereoa\".",
@@ -373,7 +376,7 @@ const I18N = {
       fusionHint:"Fusión: cómo se mezcla el dither sobre la imagen. Modo + cantidad.",
       imageTitle:"Imagen",brightness:"Brillo",contrast:"Contraste",satG:"Saturación",blur:"Desenfoque px",
       blackPt:"Punto negro",whitePt:"Punto blanco",posterize:"Posterizar",blendModeLabel:"Modo de fusión",
-      exportVideo:"Exportar MP4",fps:"FPS",stRec:"Grabando…",stFf:"Cargando ffmpeg…",stEnc:"Codificando MP4…",stMp4Fail:"MP4 falló — guardado WebM",stExpDone:"Exportado ✓",
+      exportVideo:"Exportar MP4",fps:"FPS",audio:"Audio",stFf:"Cargando ffmpeg…",stRender:"Renderizando",stEnc:"Codificando MP4…",stExpDone:"Exportado ✓",
       blackProtect:"Proteger negros",whiteProtect:"Proteger blancos",
       view:"Vista",viewResult:"Resultado",viewDepth:"Profundidad",reset:"Restablecer",export:"Exportar PNG",
       tip:"Consejo: rojo delante, azul detrás. ~⅓ de la gente lo ve invertido — usa \"invertir estéreo\".",
@@ -392,7 +395,7 @@ const I18N = {
       fusionHint:"Blend: how the dither mixes over the image. Mode + amount.",
       imageTitle:"Image",brightness:"Brightness",contrast:"Contrast",satG:"Saturation",blur:"Blur px",
       blackPt:"Black point",whitePt:"White point",posterize:"Posterize",blendModeLabel:"Blend mode",
-      exportVideo:"Export MP4",fps:"FPS",stRec:"Recording…",stFf:"Loading ffmpeg…",stEnc:"Encoding MP4…",stMp4Fail:"MP4 failed — saved WebM",stExpDone:"Exported ✓",
+      exportVideo:"Export MP4",fps:"FPS",audio:"Audio",stFf:"Loading ffmpeg…",stRender:"Rendering",stEnc:"Encoding MP4…",stExpDone:"Exported ✓",
       blackProtect:"Protect blacks",whiteProtect:"Protect whites",
       view:"View",viewResult:"Result",viewDepth:"Depth",reset:"Reset",export:"Export PNG",
       tip:"Tip: red forward, blue back. ~⅓ of people perceive it reversed — use \"invert stereo\".",
@@ -548,6 +551,7 @@ function upload(tex,unit,img){
 const S={useMap:0,invDepth:0,invStereo:0,mid:0.5,spread:2,lum:0.6,sat:1,gamma:1,black:0.05,par:0,view:0,ditherScale:4,ditherMatrix:4,ditherAtaria:0,ditherInvert:0,ditherBlend:0,brightness:100,contrast:100,satG:100,blur:0,blackPt:0,whitePt:255,post:0,blendMode:0,blackProtect:0.08,whiteProtect:0};
 let hasImage=false,hasDepth=false,currentImage=null;
 let colorIsVideo=false,depthIsVideo=false,depthMedia=null,rafId=null,exportFps=30;
+let colorFile=null,colorExt="mp4";
 
 function render(){
   if(!hasImage) return;
@@ -589,7 +593,7 @@ function loadMediaFile(file,cbImg,cbVid){
   if(file.type.startsWith("video/")){
     const v=document.createElement("video");
     v.muted=true;v.loop=true;v.playsInline=true;
-    v.onloadeddata=()=>cbVid(v,file.name);
+    v.onloadeddata=()=>cbVid(v,file.name,file);
     v.src=url;v.play().catch(()=>{});
   }else if(file.type.startsWith("image/")){
     const im=new Image();
@@ -622,10 +626,12 @@ function setImage(im,name){
   markDrop("dropImage",name);
   if(depthIsVideo)startLoop();else{stopLoop();render();}
 }
-function setColorVideo(v,name){
+function setColorVideo(v,name,file){
   cv.width=v.videoWidth;cv.height=v.videoHeight;
   upload(texImg,0,v);
   currentImage=v;colorIsVideo=true;hasImage=true;
+  colorFile=file||null;
+  colorExt=((name.split(".").pop()||"mp4").toLowerCase().replace(/[^a-z0-9]/g,""))||"mp4";
   document.getElementById("empty").style.display="none";
   cv.style.display="block";
   document.getElementById("btnExport").disabled=false;
@@ -789,13 +795,14 @@ function loadScript(src){
     document.head.appendChild(s);
   });
 }
-let _ffmpeg=null;
+let _ffmpeg=null,_ffProgress=null;
 async function getFFmpeg(){
   if(_ffmpeg)return _ffmpeg;
   if(!window.FFmpegUtil)await loadScript("https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js");
   if(!window.FFmpegWASM)await loadScript("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js");
   const {FFmpeg}=window.FFmpegWASM,{toBlobURL}=window.FFmpegUtil;
   const ff=new FFmpeg();
+  ff.on("progress",({progress})=>{if(_ffProgress)_ffProgress(progress);});
   const ffBase="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd";
   const base="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
   await ff.load({
@@ -805,52 +812,67 @@ async function getFFmpeg(){
   });
   _ffmpeg=ff;return ff;
 }
-function recordCanvas(fps){
-  return new Promise((resolve,reject)=>{
-    const stream=cv.captureStream(fps);
-    const mime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9")?"video/webm;codecs=vp9":"video/webm";
-    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:16000000});
-    const chunks=[];
-    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
-    rec.onerror=reject;
-    rec.onstop=()=>resolve(new Blob(chunks,{type:"video/webm"}));
-    const restore=()=>{currentImage.loop=true;currentImage.play();if(depthIsVideo){depthMedia.loop=true;depthMedia.play();}};
-    currentImage.loop=false;if(depthIsVideo)depthMedia.loop=false;
-    currentImage.currentTime=0;if(depthIsVideo)depthMedia.currentTime=0;
-    const onEnd=()=>{currentImage.removeEventListener("ended",onEnd);rec.stop();restore();};
-    currentImage.addEventListener("ended",onEnd);
-    Promise.all([currentImage.play(),depthIsVideo?depthMedia.play():Promise.resolve()])
-      .then(()=>rec.start()).catch(reject);
+function seekTo(v,t){
+  return new Promise((res)=>{
+    if(Math.abs(v.currentTime-t)<1e-3&&v.readyState>=2){requestAnimationFrame(()=>res());return;}
+    let done=false;
+    const fin=()=>{if(done)return;done=true;clearTimeout(to);v.removeEventListener("seeked",fin);res();};
+    const to=setTimeout(fin,3000);
+    v.addEventListener("seeked",fin);
+    try{v.currentTime=t;}catch(e){fin();}
   });
 }
 async function exportVideo(){
   const st=document.getElementById("exportStatus");
   const btn=document.getElementById("btnExport");
   const L=()=>curLang();
-  btn.disabled=true;
+  const col=currentImage,dep=depthIsVideo?depthMedia:null;
+  const keepAudio=document.getElementById("chkAudio").checked;
+  btn.disabled=true;stopLoop();
+  const wasLoop=col.loop;col.loop=false;col.pause();if(dep){dep.loop=false;dep.pause();}
+  let total=0;
   try{
-    st.textContent=L().stRec;
-    const webm=await recordCanvas(exportFps);
-    let outBlob=webm,outName="kromstr_"+Date.now()+".webm";
-    try{
-      st.textContent=L().stFf;
-      const ff=await getFFmpeg();
-      st.textContent=L().stEnc;
-      await ff.writeFile("in.webm",new Uint8Array(await webm.arrayBuffer()));
-      await ff.exec(["-i","in.webm","-r",String(exportFps),"-c:v","libx264","-pix_fmt","yuv420p","-crf","20","-preset","veryfast","out.mp4"]);
-      const data=await ff.readFile("out.mp4");
-      outBlob=new Blob([data.buffer],{type:"video/mp4"});
-      outName="kromstr_"+Date.now()+".mp4";
-    }catch(e){
-      console.error("ffmpeg failed, saving WebM:",e);
-      st.textContent=L().stMp4Fail;
+    st.textContent=L().stFf;
+    const ff=await getFFmpeg();
+    const fps=exportFps,dur=col.duration||0;
+    total=Math.max(1,Math.round(dur*fps));
+    // Deterministic per-frame render of the effect on the input videos
+    for(let i=0;i<total;i++){
+      const t=Math.min(i/fps,Math.max(dur-1e-3,0));
+      await seekTo(col,t);
+      if(dep)await seekTo(dep,t);
+      upload(texImg,0,col);
+      if(dep)upload(texDepth,1,dep);
+      render();
+      const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+      await ff.writeFile("f"+String(i).padStart(5,"0")+".png",new Uint8Array(await blob.arrayBuffer()));
+      if(i%2===0||i===total-1)st.textContent=L().stRender+" "+Math.round((i+1)/total*100)+"%";
     }
-    download(outBlob,outName);
-    if(!st.textContent.includes("WebM"))st.textContent=L().stExpDone;
+    // Encode PNG sequence → MP4 (optionally mux original audio)
+    let hasAudio=false;
+    if(keepAudio&&colorFile){
+      try{await ff.writeFile("src."+colorExt,new Uint8Array(await colorFile.arrayBuffer()));hasAudio=true;}catch(e){hasAudio=false;}
+    }
+    st.textContent=L().stEnc;
+    _ffProgress=p=>{if(p>=0&&p<=1)st.textContent=L().stEnc+" "+Math.round(p*100)+"%";};
+    let args=["-framerate",String(fps),"-i","f%05d.png"];
+    if(hasAudio)args=args.concat(["-i","src."+colorExt]);
+    args=args.concat(["-c:v","libx264","-pix_fmt","yuv420p","-crf","18","-preset","veryfast"]);
+    if(hasAudio)args=args.concat(["-map","0:v:0","-map","1:a:0?","-c:a","aac","-shortest"]);
+    args.push("out.mp4");
+    await ff.exec(args);
+    _ffProgress=null;
+    const data=await ff.readFile("out.mp4");
+    download(new Blob([data.buffer],{type:"video/mp4"}),"kromstr_"+Date.now()+".mp4");
+    st.textContent=L().stExpDone;
+    for(let i=0;i<total;i++){try{await ff.deleteFile("f"+String(i).padStart(5,"0")+".png");}catch(e){}}
+    if(hasAudio){try{await ff.deleteFile("src."+colorExt);}catch(e){}}
   }catch(e){
-    console.error(e);st.textContent=L().stErr;
+    console.error(e);_ffProgress=null;st.textContent=L().stErr;
   }finally{
-    btn.disabled=false;
+    col.loop=wasLoop;if(dep)dep.loop=wasLoop;
+    col.play().catch(()=>{});if(dep)dep.play().catch(()=>{});
+    startLoop();btn.disabled=false;
   }
 }
 
