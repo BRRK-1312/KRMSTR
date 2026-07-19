@@ -829,10 +829,10 @@ async function renderFrameAt(col,dep,t){
   if(dep)upload(texDepth,1,dep);
   render();
 }
-async function webcodecsProbe(w,h,fps){
+async function encoderProbe(codec){
   if(typeof VideoEncoder==="undefined"||typeof VideoFrame==="undefined")return false;
   try{
-    const cfg={codec:"avc1.42001f",width:2,height:2,bitrate:100000,framerate:fps};
+    const cfg={codec,width:2,height:2,bitrate:100000,framerate:30};
     const sup=await VideoEncoder.isConfigSupported(cfg);
     if(!sup||!sup.supported)return false;
     let ok=false;
@@ -844,6 +844,10 @@ async function webcodecsProbe(w,h,fps){
     await enc.flush();enc.close();
     return ok;
   }catch(e){return false;}
+}
+async function audioEncoderProbe(sr,ch){
+  if(typeof AudioEncoder==="undefined")return false;
+  try{const s=await AudioEncoder.isConfigSupported({codec:"opus",sampleRate:sr,numberOfChannels:ch,bitrate:128000});return !!(s&&s.supported);}catch(e){return false;}
 }
 async function exportWebCodecs(col,dep,fps,st,L){
   const {Muxer,ArrayBufferTarget}=await import("https://cdn.jsdelivr.net/npm/mp4-muxer/+esm");
@@ -899,6 +903,65 @@ async function exportFfmpeg(col,dep,fps,wantAudio,st,L){
   for(let i=0;i<total;i++){try{await ff.deleteFile("f"+String(i).padStart(5,"0")+".png");}catch(e){}}
   if(hasAudio){try{await ff.deleteFile("src."+colorExt);}catch(e){}}
 }
+async function exportWebM(col,dep,fps,wantAudio,st,L){
+  const {Muxer,ArrayBufferTarget}=await import("https://cdn.jsdelivr.net/npm/webm-muxer/+esm");
+  let vcodec="vp09.00.10.08";
+  if(!(await encoderProbe(vcodec)))vcodec="vp8";
+  const dur=col.duration||0,total=Math.max(1,Math.round(dur*fps));
+  const W=cv.width-(cv.width%2),H=cv.height-(cv.height%2);
+  const needTmp=(W!==cv.width||H!==cv.height);
+  let tmp,tctx;
+  if(needTmp){tmp=document.createElement("canvas");tmp.width=W;tmp.height=H;tctx=tmp.getContext("2d");}
+  // Prepare original audio (decode → re-encode to Opus) if requested and supported
+  let audioBuf=null;
+  if(wantAudio&&colorFile){
+    try{
+      const ac=new (window.AudioContext||window.webkitAudioContext)();
+      audioBuf=await ac.decodeAudioData(await colorFile.arrayBuffer());
+      if(ac.close)ac.close();
+      if(!(await audioEncoderProbe(audioBuf.sampleRate,audioBuf.numberOfChannels)))audioBuf=null;
+    }catch(e){audioBuf=null;}
+  }
+  const opts={target:new ArrayBufferTarget(),video:{codec:vcodec.indexOf("vp09")===0?"V_VP9":"V_VP8",width:W,height:H,frameRate:fps},firstTimestampBehavior:"offset"};
+  if(audioBuf)opts.audio={codec:"A_OPUS",numberOfChannels:audioBuf.numberOfChannels,sampleRate:audioBuf.sampleRate};
+  const muxer=new Muxer(opts);
+  const venc=new VideoEncoder({output:(c,m)=>muxer.addVideoChunk(c,m),error:e=>{throw e;}});
+  venc.configure({codec:vcodec,width:W,height:H,bitrate:Math.round(W*H*fps*0.14),framerate:fps});
+  const gop=Math.max(1,Math.round(fps*2));
+  for(let i=0;i<total;i++){
+    const t=Math.min(i/fps,Math.max(dur-1e-3,0));
+    await renderFrameAt(col,dep,t);
+    let src=cv;
+    if(needTmp){tctx.drawImage(cv,0,0);src=tmp;}
+    const frame=new VideoFrame(src,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});
+    venc.encode(frame,{keyFrame:i%gop===0});frame.close();
+    while(venc.encodeQueueSize>8)await new Promise(r=>setTimeout(r,0));
+    if(i%2===0||i===total-1)st.textContent=L().stRender+" "+Math.round((i+1)/total*100)+"%";
+  }
+  await venc.flush();venc.close();
+  if(audioBuf){
+    try{
+      st.textContent=L().stEnc;
+      const sr=audioBuf.sampleRate,ch=audioBuf.numberOfChannels,len=audioBuf.length;
+      const aenc=new AudioEncoder({output:(c,m)=>muxer.addAudioChunk(c,m),error:e=>{throw e;}});
+      aenc.configure({codec:"opus",sampleRate:sr,numberOfChannels:ch,bitrate:128000});
+      const step=Math.max(1,Math.round(sr*0.02));
+      const chans=[];for(let c=0;c<ch;c++)chans.push(audioBuf.getChannelData(c));
+      for(let off=0;off<len;off+=step){
+        const n=Math.min(step,len-off);
+        const data=new Float32Array(n*ch);
+        for(let c=0;c<ch;c++)data.set(chans[c].subarray(off,off+n),c*n);
+        const ad=new AudioData({format:"f32-planar",sampleRate:sr,numberOfFrames:n,numberOfChannels:ch,timestamp:Math.round(off/sr*1e6),data});
+        aenc.encode(ad);ad.close();
+        while(aenc.encodeQueueSize>16)await new Promise(r=>setTimeout(r,0));
+      }
+      await aenc.flush();aenc.close();
+    }catch(e){console.warn("audio encode failed, video-only WebM:",e);}
+  }
+  st.textContent=L().stEnc;
+  muxer.finalize();
+  download(new Blob([muxer.target.buffer],{type:"video/webm"}),"kromstr_"+Date.now()+".webm");
+}
 async function exportVideo(){
   const st=document.getElementById("exportStatus");
   const btn=document.getElementById("btnExport");
@@ -910,15 +973,18 @@ async function exportVideo(){
   try{
     const fps=exportFps;
     let done=false;
-    // Prefer WebCodecs (fast, no big download, works from file:// on Chromium). Audio needs ffmpeg.
-    if(!wantAudio&&await webcodecsProbe(cv.width,cv.height,fps)){
+    // 1) MP4 / H.264 via WebCodecs (Chromium, no audio) — native MP4, no download
+    if(!wantAudio&&await encoderProbe("avc1.42001f")){
       try{await exportWebCodecs(col,dep,fps,st,L);done=true;}
-      catch(e){console.warn("WebCodecs path failed, falling back to ffmpeg:",e);_ffProgress=null;}
+      catch(e){console.warn("H.264 path failed:",e);}
     }
+    // 2) WebM / VP9|VP8 (+Opus) via WebCodecs — Firefox & Chromium, works from file://
     if(!done){
-      st.textContent=L().stFf;
-      await exportFfmpeg(col,dep,fps,wantAudio,st,L);
+      const webmOK=(await encoderProbe("vp09.00.10.08"))||(await encoderProbe("vp8"));
+      if(webmOK){try{await exportWebM(col,dep,fps,wantAudio,st,L);done=true;}catch(e){console.warn("WebM path failed:",e);}}
     }
+    // 3) ffmpeg.wasm MP4 (+AAC) — last resort (needs localhost on Firefox)
+    if(!done){st.textContent=L().stFf;await exportFfmpeg(col,dep,fps,wantAudio,st,L);}
     st.textContent=L().stExpDone;
   }catch(e){
     console.error(e);_ffProgress=null;
